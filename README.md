@@ -67,14 +67,25 @@ Requires Hermes CLI or desktop app (any version with `agent.prompt_builder.build
 
 ## Configuration
 
-All tunables are module-level constants in `__init__.py`:
+All tunables live in `plugin.yaml` under the `config:` section (v2.1+). Defaults:
 
-| Constant | Default | Meaning |
+| Key | Default | Meaning |
 |---|---|---|
-| `_LIST_BUDGET_CHARS` | 4600 | Hard budget for full-category skill descriptions (~1,150 tok) |
-| `_PROMOTE_SCORE` | 2.0 | Decayed usage score needed to promote a category |
-| `_DECAY_DAYS` | 30.0 | Recency decay half-life for usage scores |
-| `_ALWAYS_RELEVANT` | hermes, software-development | Categories never demoted |
+| `list_budget_chars` | 4600 | Hard budget for full-category skill descriptions (~1,150 tok) |
+| `promote_score` | 2.0 | Decayed usage score needed to promote a category |
+| `decay_days` | 30.0 | Recency decay half-life for usage scores |
+| `always_relevant` | ["hermes", "software-development"] | Categories never demoted |
+| `phase3_health_check` | true | Warn when budget transforms match nothing (upstream format drift) |
+
+Changes take effect next session.
+
+## What's new in v2.1
+
+- **UsageTracker class** — module globals replaced by an encapsulated, thread-safe store (no `global`, testable in isolation)
+- **Atomic usage.json writes** — temp file + fsync + `os.replace`; a crash mid-write can never corrupt the stats file
+- **Category data cache** — the skills snapshot is read once per mtime change instead of twice per prompt build
+- **Cross-platform paths** — uses `hermes_constants.get_hermes_home()` instead of a hard-coded Windows path
+- **Phase 3 health check** — if Hermes changes the index format, the plugin logs a warning instead of silently no-oping
 
 ## Design principles
 
@@ -87,8 +98,8 @@ All tunables are module-level constants in `__init__.py`:
 
 ```
 progressive-skill/
-├── __init__.py     # the whole plugin (~650 lines)
-├── plugin.yaml     # plugin manifest
+├── __init__.py     # the whole plugin (~770 lines)
+├── plugin.yaml     # plugin manifest + config section
 └── usage.json      # created at runtime: skill usage stats
 ```
 

@@ -1,6 +1,12 @@
 name: progressive-skill
-version: 1.0.0
+version: 2.1.0
 description: "Smart skill index compaction — irrelevant categories collapse to single-line entries based on active toolset and usage frequency. Fixes context bloat from skill index (issue #22620)."
 author: "LEO"
 license: MIT
 kind: standalone
+config:
+  decay_days: 30.0
+  promote_score: 2.0
+  list_budget_chars: 4600
+  always_relevant: ["hermes", "software-development"]
+  phase3_health_check: true

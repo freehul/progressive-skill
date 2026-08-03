@@ -67,14 +67,25 @@ Windows 路径：`%LOCALAPPDATA%\hermes\plugins\progressive-skill`
 
 ## 配置
 
-可调参数均为 `__init__.py` 中的模块级常量：
+所有可调参数在 `plugin.yaml` 的 `config:` 段（v2.1+）。默认值：
 
-| 常量 | 默认 | 含义 |
+| 键 | 默认 | 含义 |
 |---|---|---|
-| `_LIST_BUDGET_CHARS` | 4600 | 完整分类技能描述硬预算（约 1,150 tokens） |
-| `_PROMOTE_SCORE` | 2.0 | 分类被提升所需的最低衰减使用分 |
-| `_DECAY_DAYS` | 30.0 | 使用分衰减半衰期（天） |
-| `_ALWAYS_RELEVANT` | hermes, software-development | 永不降级的分类 |
+| `list_budget_chars` | 4600 | 完整分类技能描述硬预算（约 1,150 tokens） |
+| `promote_score` | 2.0 | 分类被提升所需的最低衰减使用分 |
+| `decay_days` | 30.0 | 使用分衰减半衰期（天） |
+| `always_relevant` | ["hermes", "software-development"] | 永不降级的分类 |
+| `phase3_health_check` | true | 预算变换匹配不到任何内容时告警（上游格式漂移） |
+
+改动在下一个会话生效。
+
+## v2.1 更新内容
+
+- **UsageTracker 类**——模块级全局变量替换为封装的线程安全存储（无 `global`，可独立测试）
+- **usage.json 原子写入**——临时文件 + fsync + `os.replace`；写入中途崩溃也不会损坏统计数据
+- **分类数据缓存**——技能快照按 mtime 变化只读取一次，而非每次构建 prompt 读两遍
+- **跨平台路径**——使用 `hermes_constants.get_hermes_home()` 替代硬编码 Windows 路径
+- **Phase 3 健康检查**——如果 Hermes 改变索引格式，插件记录告警而非静默失效
 
 ## 设计原则
 
@@ -87,8 +98,8 @@ Windows 路径：`%LOCALAPPDATA%\hermes\plugins\progressive-skill`
 
 ```
 progressive-skill/
-├── __init__.py     # 插件本体（约 650 行）
-├── plugin.yaml     # 插件清单
+├── __init__.py     # 插件本体（约 770 行）
+├── plugin.yaml     # 插件清单 + 配置段
 └── usage.json      # 运行时生成：技能使用统计
 ```
 
