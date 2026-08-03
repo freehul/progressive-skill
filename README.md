@@ -1,98 +1,99 @@
-# Progressive Skill（渐进式技能）
+# Progressive Skill
 
-**Hermes Agent 插件**——智能压缩技能索引，按工具集与使用频次渐进式披露，硬预算控制 token 开销。
+**A Hermes Agent plugin** — smart skill index compaction with progressive disclosure, budget control, and usage-frequency learning.
 
-解决 [NousResearch/hermes-agent#22620](https://github.com/NousResearch/hermes-agent/issues/22620)（*"技能列表膨胀导致上下文窗口暴涨"*）：
+Tackles [NousResearch/hermes-agent#22620](https://github.com/NousResearch/hermes-agent/issues/22620): *"Skill list bloat causes massive context window inflation."*
 
-安装 250+ 个技能后，Hermes 会把全部技能的名称+描述注入 system prompt——每轮对话固定开销约 **6,000 tokens**。本插件将其压缩至 **约 1,800 tokens（-70%）**，同时保持 Agent 发现并加载正确技能的能力。
+With 250+ skills installed, the full index (name + description for every skill) is injected into the system prompt on every turn — ~6,000 tokens of fixed overhead. Progressive Skill shrinks that to **~1,800 tokens (-70%)** while keeping the agent's ability to discover and load the right skill.
 
-## 这是什么
+## What this is
 
-一个 **Hermes 后端插件**（Python），安装到 Hermes 的用户插件目录，通过 `hermes plugins enable` 启用。它不修改 Hermes 源码、不改变渲染逻辑，只做三件事：决定哪些技能分类该降级、记录技能使用频次、按预算截断完整描述。
+A **Hermes backend plugin** (Python) installed into the user plugins directory and enabled with `hermes plugins enable progressive-skill`. It does not modify Hermes source or re-render anything — it only decides which skill categories to demote, records skill usage frequency, and truncates full descriptions to a budget.
 
-## 工作原理
+## How it works
 
-三层机制，可独立关闭：
+Three layers, each independently disabled:
 
-### 1. 工具集决策注入
-构建技能索引时，仅依据**强工具集→分类映射**（terminal→devops/github、web→research……）决定哪些分类完整展示，其余降级为单行：
+### 1. Toolset decision injection
+When building the skills index, only **strong toolset→category links** (terminal→devops/github, web→research, …) decide which categories stay fully visible. Everything else is demoted to a single compact line:
 
 ```
-leadership (25)        ← 原来是 25 个技能名+描述
+leadership (25)        ← was: 25 skill names + descriptions
 books/comfyui-docs (14)
 ```
 
-降级渲染由 Hermes **原生** `compact_categories` 机制完成——插件只决定*降级什么*，从不重新渲染。若上游改动函数签名，wrapper 捕获 `TypeError` 后自动退化为普通调用（插件透明化，绝不影响 Agent 主循环）。
+Demotion is handled by Hermes's **native** `compact_categories` mechanism — the plugin only decides *what* to demote, never re-renders. If upstream changes the function signature, the wrapper catches `TypeError` and degrades to a plain call (the plugin becomes transparent, never breaks the agent loop).
 
-### 2. 使用频次学习（动态优先级）
-技能列表是静态的，但**使用是动态的**。插件 hook `post_tool_call`，记录每次 `skill_view` / `skill_manage` 调用到 `usage.json`：
+### 2. Usage-frequency learning (dynamic priority)
+Skill lists are static, but **usage is dynamic**. The plugin hooks `post_tool_call` to record every `skill_view` / `skill_manage` call into `usage.json`:
 
 ```
-reasonix:      count=3, score=3.00 → autonomous-ai-agents（提升为完整展示）
-llm-wiki:      count=1, score=1.00 → 不提升
+reasonix:      count=3, score=3.00 → autonomous-ai-agents (promoted)
+llm-wiki:      count=1, score=1.00 → not promoted
 ```
 
-评分 = `count × exp(-Δdays / 30)`（带衰减）。高频使用的技能即使没有工具集映射，其所在分类也保持完整展示——这是静态映射给不了的动态信号。
+Score = `count × exp(-Δdays / 30)` — recency-decayed, so frequently-used skills keep their whole category fully visible even without a toolset mapping. This is the dynamic signal a static mapping can't provide.
 
-### 3. Token 硬预算
-完整分类按可配置预算截断（`_LIST_BUDGET_CHARS`，默认 4600 字符 ≈ 1,150 tokens）：
+### 3. Token budget (hard cap)
+Full categories are truncated to a configurable budget (`_LIST_BUDGET_CHARS`, default 4600 chars ≈ 1,150 tokens):
 
-- **有使用记录（正分）的技能**优先保留——高分在前
-- **零分技能**按原始顺序填充剩余预算
-- 被截掉的技能仍可通过 `skills_list(category=...)` 完整发现
+- **Positive-scored skills** (used recently) are kept first — highest first
+- **Zero-scored skills** fill the remaining budget in original order
+- Dropped skills remain fully discoverable via `skills_list(category=...)`
 
-## 效果
+## Results
 
-| 场景 | 优化前 | 优化后 | 节省 |
+| Scenario | Before | After | Savings |
 |---|---|---|---|
-| 桌面全工具集 | ~6,100 tok | ~1,800 tok | **-70%** |
-| 纯编码 | ~6,100 tok | ~1,800 tok | -70% |
-| 无工具集信息（安全网） | ~6,100 tok | ~6,100 tok | 0%（安全） |
+| Desktop (full toolset) | ~6,100 tok | ~1,800 tok | **-70%** |
+| Pure coding | ~6,100 tok | ~1,800 tok | -70% |
+| No toolset info (safety) | ~6,100 tok | ~6,100 tok | 0% (safe) |
 
-已端到端验证：新会话询问"我们蒸馏了哪些书籍"时，Agent 通过压缩索引正确找到 `books/comfyui-docs` 分类，用 `skills_list` 展开、加载正确技能——发现行为与全量索引完全一致。
+Verified end-to-end: a fresh session asking "what books have we distilled" correctly found the `books/comfyui-docs` category through the compact index, expanded it with `skills_list`, and loaded the right skills — identical discovery behavior to the full index.
 
-## 安装
+## Installation
 
 ```bash
-# 克隆到用户插件目录
+# Clone into the user plugins directory
 git clone https://github.com/freehul/progressive-skill ~/.hermes/plugins/progressive-skill
 
-# 启用（下个会话生效）
+# Enable (takes effect next session)
 hermes plugins enable progressive-skill
 ```
 
-Windows 路径：`%LOCALAPPDATA%\hermes\plugins\progressive-skill`
+On Windows: `%LOCALAPPDATA%\hermes\plugins\progressive-skill`
 
-**依赖**：Hermes CLI 或桌面应用（任何含 `agent.prompt_builder.build_skills_system_prompt` 与 `compact_categories` 参数的版本）。
+Requires Hermes CLI or desktop app (any version with `agent.prompt_builder.build_skills_system_prompt` and the `compact_categories` kwarg).
 
-## 配置
+## Configuration
 
-可调参数均为 `__init__.py` 中的模块级常量：
+All tunables are module-level constants in `__init__.py`:
 
-| 常量 | 默认 | 含义 |
+| Constant | Default | Meaning |
 |---|---|---|
-| `_LIST_BUDGET_CHARS` | 4600 | 完整分类技能描述硬预算（约 1,150 tokens） |
-| `_PROMOTE_SCORE` | 2.0 | 分类被提升所需的最低衰减使用分 |
-| `_DECAY_DAYS` | 30.0 | 使用分衰减半衰期（天） |
-| `_ALWAYS_RELEVANT` | hermes, software-development | 永不降级的分类 |
+| `_LIST_BUDGET_CHARS` | 4600 | Hard budget for full-category skill descriptions (~1,150 tok) |
+| `_PROMOTE_SCORE` | 2.0 | Decayed usage score needed to promote a category |
+| `_DECAY_DAYS` | 30.0 | Recency decay half-life for usage scores |
+| `_ALWAYS_RELEVANT` | hermes, software-development | Categories never demoted |
 
-## 设计原则
+## Design principles
 
-- **决策/渲染分离**——插件只决定*哪些分类降级*，Hermes 负责渲染。不对渲染结果做正则，上游改格式也不受影响
-- **零 LLM 决策**——全部披露逻辑是纯规则（工具集映射 + 使用分 + 预算），快、确定、token 可预测
-- **默认保守**——降级分类保留数量行，从不彻底隐藏；一切可通过 `skills_list` 一步找回
-- **安全退化**——签名变化→透明回退；快照缺失→目录扫描；无使用记录→冷启动
+- **Decision/render separation** — the plugin decides *which* categories to demote; Hermes renders. No regex over rendered output → robust to upstream formatting changes.
+- **Zero LLM decisions** — all disclosure logic is pure rules (toolset mapping + usage scores + budget). Fast, deterministic, token-predictable.
+- **Conservative by default** — demoted categories stay visible as count lines; nothing is ever fully hidden. Everything is one `skills_list` call away.
+- **Safe degradation** — signature drift → transparent fallback; missing snapshot → directory scan; missing usage → cold start.
 
-## 文件结构
+## Files
 
 ```
 progressive-skill/
-├── __init__.py     # 插件本体（约 650 行）
-├── plugin.yaml     # 插件清单
-└── usage.json      # 运行时生成：技能使用统计
+├── __init__.py     # the whole plugin (~650 lines)
+├── plugin.yaml     # plugin manifest
+└── usage.json      # created at runtime: skill usage stats
 ```
 
-## 关联
+## Related
 
-- Hermes 官方文档（渐进式披露）：[Working with Skills](https://hermes-agent.nousresearch.com/docs/guides/work-with-skills)
-- 上游 issue：[#22620 — Skill list bloat causes massive context window inflation](https://github.com/NousResearch/hermes-agent/issues/22620)
+- 中文说明: [README.zh-CN.md](README.zh-CN.md)
+- Official docs on skill progressive disclosure: [Working with Skills](https://hermes-agent.nousresearch.com/docs/guides/work-with-skills)
+- Upstream issue: [#22620 — Skill list bloat causes massive context window inflation](https://github.com/NousResearch/hermes-agent/issues/22620)
