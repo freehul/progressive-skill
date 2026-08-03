@@ -1,0 +1,5 @@
+# usage.json is generated at runtime — skill usage stats
+usage.json
+# Python cache
+__pycache__/
+*.pyc
