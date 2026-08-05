@@ -3,3 +3,6 @@ usage.json
 # Python cache
 __pycache__/
 *.pyc
+# venv / test caches
+.venv/
+.pytest_cache/
