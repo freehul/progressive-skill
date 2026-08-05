@@ -1,14 +1,17 @@
 # Progressive Skill（渐进式技能）
 
-**Hermes Agent 插件**——智能压缩技能索引，按工具集与使用频次渐进式披露，硬预算控制 token 开销。
+**智能压缩技能索引**，按工具集与使用频次渐进式披露，硬预算控制 token 开销——**适用于任意 Agent**。
 
 解决 [NousResearch/hermes-agent#22620](https://github.com/NousResearch/hermes-agent/issues/22620)（*"技能列表膨胀导致上下文窗口暴涨"*）：
 
-安装 250+ 个技能后，Hermes 会把全部技能的名称+描述注入 system prompt——每轮对话固定开销约 **6,000 tokens**。本插件将其压缩至 **约 1,800 tokens（-70%）**，同时保持 Agent 发现并加载正确技能的能力。
+安装 250+ 个技能后，Agent 会把全部技能的名称+描述注入 system prompt——每轮对话固定开销约 **6,000 tokens**。本插件将其压缩至 **约 1,800 tokens（-70%）**，同时保持 Agent 发现并加载正确技能的能力。
 
 ## 这是什么
 
-一个 **Hermes 后端插件**（Python），安装到 Hermes 的用户插件目录，通过 `hermes plugins enable` 启用。它不修改 Hermes 源码、不改变渲染逻辑，只做三件事：决定哪些技能分类该降级、记录技能使用频次、按预算截断完整描述。
+从 **v3** 起，项目分为**与 Agent 无关的决策核心**（`core/`，纯 Python，零 Agent 依赖）与各 Agent 适配层：
+
+- **Hermes**：薄插件（`__init__.py`），通过 `hermes plugins install freehul/progressive-skill --enable` 安装。只决定哪些技能分类该降级、记录使用频次、按预算截断完整描述，不修改 Hermes 源码。
+- **其他 Agent（Claude Code、Codex 等）**：用自带 `cli.py` 驱动同一套决策——见下方「通用 Agent 用法」。
 
 ## 工作原理
 
@@ -53,17 +56,28 @@ llm-wiki:      count=1, score=1.00 → 不提升
 
 ## 安装
 
-```bash
-# 克隆到用户插件目录
-git clone https://github.com/freehul/progressive-skill ~/.hermes/plugins/progressive-skill
+### Hermes（官方插件流程）
 
-# 启用（下个会话生效）
-hermes plugins enable progressive-skill
+```bash
+hermes plugins install freehul/progressive-skill --enable
+# 升级：hermes plugins update progressive-skill
 ```
 
-Windows 路径：`%LOCALAPPDATA%\hermes\plugins\progressive-skill`
-
 **依赖**：Hermes CLI 或桌面应用（任何含 `agent.prompt_builder.build_skills_system_prompt` 与 `compact_categories` 参数的版本）。
+
+### 通用 Agent 用法
+
+任意 Agent 可直接运行决策核心，无需 Hermes。完整指南见 [`skills/progressive-skill/SKILL.md`](skills/progressive-skill/SKILL.md) 与 `AGENTS.md`。
+
+```bash
+# 决定哪些分类降级（JSON 输出）
+python cli.py demote --snapshot snap.json --usage usage.json --toolsets terminal,web
+
+# 预算压缩渲染后的技能索引
+python cli.py budget --input index.txt --usage usage.json --relevant devops,hermes
+```
+
+前置：Python 3.10+、自己的技能快照 JSON（每条技能含 `{"category": "...", "frontmatter_name": "..."}`）、可选 `usage.json`。
 
 ## 配置
 
@@ -98,8 +112,13 @@ Windows 路径：`%LOCALAPPDATA%\hermes\plugins\progressive-skill`
 
 ```
 progressive-skill/
-├── __init__.py     # 插件本体（约 770 行）
+├── __init__.py     # Hermes 适配层（薄，v3）
 ├── plugin.yaml     # 插件清单 + 配置段
+├── cli.py          # 通用 CLI：demote / budget（无 Agent 依赖）
+├── core/           # 与 Agent 无关的决策核心（config/catalog/scorer/selector/budget/facade）
+├── skills/progressive-skill/SKILL.md   # Claude Code 技能入口
+├── AGENTS.md       # Agent 接入指南
+├── tests/          # 单元测试（pytest）
 └── usage.json      # 运行时生成：技能使用统计
 ```
 
