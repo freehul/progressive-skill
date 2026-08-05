@@ -1,6 +1,6 @@
 # Progressive Skill
 
-**A Hermes Agent plugin** — smart skill index compaction with progressive disclosure, budget control, and usage-frequency learning.
+**Smart skill index compaction** with progressive disclosure, budget control, and usage-frequency learning — **works with any agent**.
 
 Tackles [NousResearch/hermes-agent#22620](https://github.com/NousResearch/hermes-agent/issues/22620): *"Skill list bloat causes massive context window inflation."*
 
@@ -8,7 +8,10 @@ With 250+ skills installed, the full index (name + description for every skill) 
 
 ## What this is
 
-A **Hermes backend plugin** (Python) installed into the user plugins directory and enabled with `hermes plugins enable progressive-skill`. It does not modify Hermes source or re-render anything — it only decides which skill categories to demote, records skill usage frequency, and truncates full descriptions to a budget.
+Since **v3**, the project splits into an **agent-agnostic decision core** (`core/`, pure Python, zero agent imports) and per-agent adapters:
+
+- **Hermes**: a thin backend plugin (`__init__.py`) installed via `hermes plugins install freehul/progressive-skill --enable`. It decides which skill categories to demote, records usage frequency, and truncates full descriptions to a budget — without modifying Hermes source.
+- **Any other agent (Claude Code, Codex, ...)**: drive the same decisions through the bundled `cli.py` — see [Universal agent usage](#universal-agent-usage) below.
 
 ## How it works
 
@@ -53,17 +56,28 @@ Verified end-to-end: a fresh session asking "what books have we distilled" corre
 
 ## Installation
 
-```bash
-# Clone into the user plugins directory
-git clone https://github.com/freehul/progressive-skill ~/.hermes/plugins/progressive-skill
+### Hermes (official plugin flow)
 
-# Enable (takes effect next session)
-hermes plugins enable progressive-skill
+```bash
+hermes plugins install freehul/progressive-skill --enable
+# updates: hermes plugins update progressive-skill
 ```
 
-On Windows: `%LOCALAPPDATA%\hermes\plugins\progressive-skill`
-
 Requires Hermes CLI or desktop app (any version with `agent.prompt_builder.build_skills_system_prompt` and the `compact_categories` kwarg).
+
+### Universal agent usage
+
+Any agent can run the decision core directly — no Hermes required. Full guide in [`skills/progressive-skill/SKILL.md`](skills/progressive-skill/SKILL.md) and `AGENTS.md`.
+
+```bash
+# Which categories to demote? (JSON out)
+python cli.py demote --snapshot snap.json --usage usage.json --toolsets terminal,web
+
+# Budget-compress a rendered skills index
+python cli.py budget --input index.txt --usage usage.json --relevant devops,hermes
+```
+
+Prerequisites: Python 3.10+, your own skills snapshot JSON (one entry per skill: `{"category": "...", "frontmatter_name": "..."}`) and optional `usage.json`.
 
 ## Configuration
 
@@ -87,6 +101,13 @@ Changes take effect next session.
 - **Cross-platform paths** — uses `hermes_constants.get_hermes_home()` instead of a hard-coded Windows path
 - **Phase 3 health check** — if Hermes changes the index format, the plugin logs a warning instead of silently no-oping
 
+## What's new in v3
+
+- **Agent-agnostic core** — decision logic extracted to `core/` (pure Python, zero Hermes imports). Hermes plugin is now a thin adapter; other agents drive the same logic via `cli.py`.
+- **CLI** — `cli.py demote` / `cli.py budget` for universal agent usage
+- **Claude Code skill** — `skills/progressive-skill/SKILL.md` entry point
+- **Unit tests** — `tests/test_core.py` (11 cases, pytest)
+
 ## Design principles
 
 - **Decision/render separation** — the plugin decides *which* categories to demote; Hermes renders. No regex over rendered output → robust to upstream formatting changes.
@@ -98,8 +119,13 @@ Changes take effect next session.
 
 ```
 progressive-skill/
-├── __init__.py     # the whole plugin (~770 lines)
-├── plugin.yaml     # plugin manifest + config section
+├── __init__.py     # Hermes adapter (thin, v3)
+├── plugin.yaml     # Hermes plugin manifest + config section
+├── cli.py          # universal CLI: demote / budget (no agent deps)
+├── core/           # agent-agnostic decision core (config/catalog/scorer/selector/budget/facade)
+├── skills/progressive-skill/SKILL.md   # Claude Code skill entry point
+├── AGENTS.md       # agent integration guide
+├── tests/          # unit tests (pytest)
 └── usage.json      # created at runtime: skill usage stats
 ```
 
