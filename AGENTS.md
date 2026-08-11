@@ -23,12 +23,12 @@ progressive-skill/
 
 ## For any agent (Claude Code, Codex, ...)
 
-Drive the core through `cli.py` — see `skills/progressive-skill/SKILL.md`
+Drive the core through `generic/cli.py` — see `skills/progressive-skill/SKILL.md`
 for the full usage guide. Short form:
 
 ```bash
-python cli.py demote --snapshot snap.json --usage usage.json --toolsets terminal
-python cli.py budget --input index.txt --usage usage.json --relevant devops,hermes
+python generic/cli.py demote --snapshot snap.json --usage usage.json --toolsets terminal
+python generic/cli.py budget --input index.txt --usage usage.json --relevant devops,hermes
 ```
 
 ## For Hermes

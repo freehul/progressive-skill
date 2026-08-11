@@ -8,7 +8,7 @@ With 250+ skills installed, the full index (name + description for every skill) 
 
 ## What this is
 
-Since **v3**, the project splits into an **agent-agnostic decision core** (`core/`, pure Python, zero agent imports) and per-agent adapters:
+Since **v3**, the project splits into an **agent-agnostic decision core** (`generic/core/`, pure Python, zero agent imports) and per-agent adapters:
 
 - **Hermes**: a thin backend plugin (`__init__.py`) installed via `hermes plugins install freehul/progressive-skill --enable`. It decides which skill categories to demote, records usage frequency, and truncates full descriptions to a budget — without modifying Hermes source.
 - **Any other agent (Claude Code, Codex, ...)**: drive the same decisions through the bundled `cli.py` — see [Universal agent usage](#universal-agent-usage) below.
@@ -71,10 +71,10 @@ Any agent can run the decision core directly — no Hermes required. Full guide 
 
 ```bash
 # Which categories to demote? (JSON out)
-python cli.py demote --snapshot snap.json --usage usage.json --toolsets terminal,web
+python generic/cli.py demote --snapshot snap.json --usage usage.json --toolsets terminal,web
 
 # Budget-compress a rendered skills index
-python cli.py budget --input index.txt --usage usage.json --relevant devops,hermes
+python generic/cli.py budget --input index.txt --usage usage.json --relevant devops,hermes
 ```
 
 Prerequisites: Python 3.10+, your own skills snapshot JSON (one entry per skill: `{"category": "...", "frontmatter_name": "..."}`) and optional `usage.json`.
@@ -103,7 +103,7 @@ Changes take effect next session.
 
 ## What's new in v3
 
-- **Agent-agnostic core** — decision logic extracted to `core/` (pure Python, zero Hermes imports). Hermes plugin is now a thin adapter; other agents drive the same logic via `cli.py`.
+- **Agent-agnostic core** — decision logic extracted to `generic/core/` (pure Python, zero Hermes imports). Hermes plugin is now a thin adapter; other agents drive the same logic via `cli.py`.
 - **CLI** — `cli.py demote` / `cli.py budget` for universal agent usage
 - **Claude Code skill** — `skills/progressive-skill/SKILL.md` entry point
 - **Unit tests** — `tests/test_core.py` (11 cases, pytest)
@@ -121,8 +121,10 @@ Changes take effect next session.
 progressive-skill/
 ├── __init__.py     # Hermes adapter (thin, v3)
 ├── plugin.yaml     # Hermes plugin manifest + config section
-├── cli.py          # universal CLI: demote / budget (no agent deps)
-├── core/           # agent-agnostic decision core (config/catalog/scorer/selector/budget/facade)
+├── generic/        # agent-agnostic 独立包：core/（决策核心）+ cli.py + README（零 Hermes 依赖，可单独拷贝）
+│   ├── core/       #   决策核心：config/catalog/scorer/selector/budget/facade
+│   ├── cli.py      #   通用 CLI：demote / budget
+│   └── README.md   #   独立包使用说明
 ├── skills/progressive-skill/SKILL.md   # Claude Code skill entry point
 ├── AGENTS.md       # agent integration guide
 ├── tests/          # unit tests (pytest)
