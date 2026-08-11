@@ -8,10 +8,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from core import config as core_config
-from core.budget import apply_transforms, score_skill_lines
-from core.scorer import UsageTracker
-from core.selector import (
+from generic.core import config as core_config
+from generic.core.budget import apply_transforms, score_skill_lines
+from generic.core.scorer import UsageTracker
+from generic.core.selector import (
     compute_demote_set,
     infer_relevant_categories,
 )
@@ -98,7 +98,7 @@ def test_compute_demote_usage_promotion():
     all_cats = {"a", "b"}
     skill_map = {"skills/x": "b"}
     usage = {"skills/x": {"count": 50, "last_used": time.time()}}
-    from core.scorer import UsageTracker as UT
+    from generic.core.scorer import UsageTracker as UT
     t = UT()
     demote = compute_demote_set(
         core_config.get, all_cats, skill_map, usage, t.decayed_score,

@@ -8,10 +8,10 @@
 
 ## 这是什么
 
-从 **v3** 起，项目分为**与 Agent 无关的决策核心**（`core/`，纯 Python，零 Agent 依赖）与各 Agent 适配层：
+从 **v3** 起，项目分为**与 Agent 无关的决策核心**（`generic/core/`，纯 Python，零 Agent 依赖）与各 Agent 适配层：
 
 - **Hermes**：薄插件（`__init__.py`），通过 `hermes plugins install freehul/progressive-skill --enable` 安装。只决定哪些技能分类该降级、记录使用频次、按预算截断完整描述，不修改 Hermes 源码。
-- **其他 Agent（Claude Code、Codex 等）**：用自带 `cli.py` 驱动同一套决策——见下方「通用 Agent 用法」。
+- **其他 Agent（Claude Code、Codex 等）**：用自带 `generic/cli.py` 驱动同一套决策——见下方「通用 Agent 用法」。
 
 ## 工作原理
 
@@ -71,10 +71,10 @@ hermes plugins install freehul/progressive-skill --enable
 
 ```bash
 # 决定哪些分类降级（JSON 输出）
-python cli.py demote --snapshot snap.json --usage usage.json --toolsets terminal,web
+python generic/cli.py demote --snapshot snap.json --usage usage.json --toolsets terminal,web
 
 # 预算压缩渲染后的技能索引
-python cli.py budget --input index.txt --usage usage.json --relevant devops,hermes
+python generic/cli.py budget --input index.txt --usage usage.json --relevant devops,hermes
 ```
 
 前置：Python 3.10+、自己的技能快照 JSON（每条技能含 `{"category": "...", "frontmatter_name": "..."}`）、可选 `usage.json`。
@@ -114,8 +114,8 @@ python cli.py budget --input index.txt --usage usage.json --relevant devops,herm
 progressive-skill/
 ├── __init__.py     # Hermes 适配层（薄，v3）
 ├── plugin.yaml     # 插件清单 + 配置段
-├── cli.py          # 通用 CLI：demote / budget（无 Agent 依赖）
-├── core/           # 与 Agent 无关的决策核心（config/catalog/scorer/selector/budget/facade）
+├── generic/        # 与 Agent 无关的独立包（core/ + cli.py + README）
+│   ├── core/       #   决策核心（config/catalog/scorer/selector/budget/facade）
 ├── skills/progressive-skill/SKILL.md   # Claude Code 技能入口
 ├── AGENTS.md       # Agent 接入指南
 ├── tests/          # 单元测试（pytest）

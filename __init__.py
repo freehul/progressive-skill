@@ -31,7 +31,10 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 if TYPE_CHECKING:
     from hermes_cli.plugins import PluginAPI
 
-from .core import ProgressiveCore, UsageTracker
+try:
+    from .generic.core import ProgressiveCore, UsageTracker
+except ImportError:  # 无包上下文（如 pytest 收集根模块时）
+    from generic.core import ProgressiveCore, UsageTracker
 
 logger = logging.getLogger(__name__)
 

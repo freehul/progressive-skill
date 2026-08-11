@@ -5,7 +5,7 @@ description: Compress a bloated skills index to save context tokens. Use when th
 
 # Progressive Skill (agent-agnostic core)
 
-Shrinks a skill index from full descriptions to compact lines while keeping discovery working. The decision engine (`core/`) is agent-agnostic — drive it with the bundled `cli.py`, feed it your own snapshot/usage data.
+Shrinks a skill index from full descriptions to compact lines while keeping discovery working. The decision engine (`generic/core/`) is agent-agnostic — drive it with the bundled `generic/cli.py`, feed it your own snapshot/usage data.
 
 ## When to use
 
@@ -17,7 +17,7 @@ Shrinks a skill index from full descriptions to compact lines while keeping disc
 ### 1. Decide which categories to demote
 
 ```bash
-python cli.py demote \
+python generic/cli.py demote \
   --snapshot <skills-snapshot.json> \
   --usage usage.json \
   --toolsets terminal,web \
@@ -45,8 +45,8 @@ Snapshot format (the `skills` array, one entry per skill):
 ### 2. Budget-compress a rendered index
 
 ```bash
-python cli.py budget --input index.txt --usage usage.json --relevant devops,hermes
-# or pipe:  cat index.txt | python cli.py budget --usage usage.json --relevant devops,hermes
+python generic/cli.py budget --input index.txt --usage usage.json --relevant devops,hermes
+# or pipe:  cat index.txt | python generic/cli.py budget --usage usage.json --relevant devops,hermes
 ```
 
 Input format — a rendered skills index with these line shapes:
@@ -67,4 +67,4 @@ If `--relevant` is omitted, it is derived from `demote` (all categories minus de
 
 ## Config (optional)
 
-`--yaml config.yaml` with a `config:` section, or edit `core/config.py` defaults. Tunables: `list_budget_chars` (4600), `promote_score` (2.0), `decay_days` (30.0), `always_relevant` (["hermes","software-development"]), `phase3_health_check` (true).
+`--yaml config.yaml` with a `config:` section, or edit `generic/core/config.py` defaults. Tunables: `list_budget_chars` (4600), `promote_score` (2.0), `decay_days` (30.0), `always_relevant` (["hermes","software-development"]), `phase3_health_check` (true).
