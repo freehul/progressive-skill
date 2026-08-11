@@ -1,7 +1,7 @@
 name: progressive-skill
 version: 3.0.0
 description: "Smart skill index compaction — irrelevant categories collapse to single-line entries based on active toolset and usage frequency. Agent-agnostic core (v3): works with Hermes, Claude Code, Codex via cli.py. Fixes context bloat from skill index (issue #22620)."
-author: "LEO"
+author: "freehul"
 license: MIT
 kind: standalone
 config:
