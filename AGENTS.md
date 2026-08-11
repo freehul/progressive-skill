@@ -9,14 +9,16 @@ Python with zero agent imports; each agent binds its own data sources.
 progressive-skill/
 ├── __init__.py        # Hermes adapter: paths, monkey-patch, hooks (thin)
 ├── plugin.yaml        # Hermes plugin manifest + config section
-├── cli.py             # universal CLI: demote / budget (no agent deps)
-├── core/              # agent-agnostic decision core
-│   ├── config.py      # tunables (decay, promote_score, budget, always_relevant)
-│   ├── catalog.py     # category discovery from snapshot JSON / skills dir
-│   ├── scorer.py      # UsageTracker — thread-safe usage store, recency decay
-│   ├── selector.py    # demote decision (toolset mapping + usage promotion)
-│   ├── budget.py      # budget-capped index rendering (count lines + top-N)
-│   └── facade.py      # ProgressiveCore — binds data sources, drives decisions
+├── generic/           # agent-agnostic 独立包（零 Hermes 依赖，可单独拷贝）
+│   ├── core/          # decision core
+│   │   ├── config.py      # tunables (decay, promote_score, budget, always_relevant)
+│   │   ├── catalog.py     # category discovery from snapshot JSON / skills dir
+│   │   ├── scorer.py      # UsageTracker — thread-safe usage store, recency decay
+│   │   ├── selector.py    # demote decision (toolset mapping + usage promotion)
+│   │   ├── budget.py      # budget-capped index rendering (count lines + top-N)
+│   │   └── facade.py      # ProgressiveCore — binds data sources, drives decisions
+│   ├── cli.py         # universal CLI: demote / budget (no agent deps)
+│   └── README.md      # 独立包使用说明
 ├── skills/progressive-skill/SKILL.md   # Claude Code skill entry point
 └── tests/test_core.py # 11 unit tests (pytest)
 ```
