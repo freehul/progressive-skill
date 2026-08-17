@@ -115,12 +115,15 @@ def _patch_prompt_builder() -> bool:
             available_tools=None,
             available_toolsets=None,
             compact_categories=None,
+            **kwargs,
         ):
             core = _get_core()
             demote = core.compute_demote(
                 available_tools, available_toolsets, compact_categories
             )
-            # Decision injection: pass demotion set to native rendering.
+            # Decision injection: pass demotion set to native rendering,
+            # forwarding every other kwarg (e.g. skills_dir_override) so
+            # the wrapper is transparent to upstream signature drift.
             # If upstream dropped the kwarg, fall back to a plain call —
             # the plugin becomes transparent instead of breaking.
             try:
@@ -128,6 +131,7 @@ def _patch_prompt_builder() -> bool:
                     available_tools=available_tools,
                     available_toolsets=available_toolsets,
                     compact_categories=demote,
+                    **kwargs,
                 )
             except TypeError:
                 logger.info(
@@ -137,6 +141,7 @@ def _patch_prompt_builder() -> bool:
                 result = original(
                     available_tools=available_tools,
                     available_toolsets=available_toolsets,
+                    **kwargs,
                 )
             if not result:
                 return result
