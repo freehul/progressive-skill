@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# pre-push hook — refuse to push when the skills tree fails structural audit.
+#
+# Install (client side):
+#   cp scripts/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+#   # or: git config core.hooksPath scripts/githooks  (after copying there)
+#
+# Env overrides:
+#   SKILLS_DIR   path to the skills tree (default: <repo>/skills)
+#   MAX_CHARS    monolith budget           (default: 20000)
+#   KNOWN_NAMES  optional registry file    (default: none)
+#
+# NOTE: client hooks can be bypassed with --no-verify. Install the
+# server-side scripts/pre-receive on the canonical (bare) repo for
+# an unbypassable gate.
+
+set -euo pipefail
+repo_root="$(git rev-parse --show-toplevel)"
+here="$(cd "$(dirname "$0")" && pwd)"
+
+skills_dir="${SKILLS_DIR:-$repo_root/skills}"
+if [[ ! -d "$skills_dir" ]]; then
+  echo "[pre-push] no skills dir at $skills_dir — nothing to audit, allowing push"
+  exit 0
+fi
+
+# Pick a python that actually runs (Windows Store stubs pass `command -v`
+# but exit non-zero when executed).
+py=""
+for cand in python python3; do
+  if command -v "$cand" >/dev/null 2>&1 && "$cand" -c "import sys" 2>/dev/null; then
+    py="$cand"; break
+  fi
+done
+if [[ -z "$py" ]]; then
+  echo "[pre-push] no usable python found — skipping skills audit"
+  exit 0
+fi
+
+# Exit 2 = engine missing → skip (bootstrap-friendly); other non-zero = block.
+"$py" "$here/audit_gate.py" "$skills_dir" \
+  ${MAX_CHARS:+--max-chars "$MAX_CHARS"} \
+  ${KNOWN_NAMES:+--known-names "$KNOWN_NAMES"}
+rc=$?
+[[ $rc -eq 2 ]] && { echo "[pre-push] audit engine not installed — skipping"; exit 0; }
+exit $rc

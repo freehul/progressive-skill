@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 
 from core import ProgressiveCore, UsageTracker
+from core.audit import audit_skills_dir
 
 
 def _build_core(args: argparse.Namespace) -> ProgressiveCore:
@@ -78,6 +79,17 @@ def cmd_budget(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_audit(args: argparse.Namespace) -> int:
+    """Structural audit of a skill library; JSON report, exit 1 on FAIL."""
+    from core.audit import parse_known_names
+    known = parse_known_names(args.known_names) if args.known_names else None
+    report = audit_skills_dir(Path(args.skills_dir),
+                              max_chars=args.max_chars, known_names=known)
+    json.dump(report, sys.stdout, ensure_ascii=False, indent=2)
+    sys.stdout.write("\n")
+    return 0 if report["ok"] else 1
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="progressive-skill", description=__doc__,
@@ -132,6 +144,21 @@ def main(argv=None) -> int:
         "--tools", help="comma-separated tools (used when deriving relevant)"
     )
     p_budget.set_defaults(func=cmd_budget)
+
+    p_audit = sub.add_parser(
+        "audit", help="structural audit of a skill library (JSON, exit 1 on FAIL)"
+    )
+    p_audit.add_argument("skills_dir", help="skills library root directory")
+    p_audit.add_argument(
+        "--max-chars", type=int, default=20000,
+        help="monolith budget per SKILL.md (default: 20000)",
+    )
+    p_audit.add_argument(
+        "--known-names",
+        help="registry file: .txt (one name/line), .json (list or {skills:{}}), "
+        ".yml ({skills:{...}}); skills missing from it warn as unregistered",
+    )
+    p_audit.set_defaults(func=cmd_audit)
 
     args = parser.parse_args(argv)
     return args.func(args)

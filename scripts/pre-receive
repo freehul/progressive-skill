@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# pre-receive hook (SERVER SIDE, for the bare canonical repo, e.g. NAS
+# skills-hub.git) — audits the pushed tree; bypassing client hooks with
+# --no-verify does NOT get past this one.
+#
+# Install on your server:
+#   scp scripts/pre-receive user@your-server:/path/to/repo.git/hooks/
+#   ssh user@your-server 'chmod +x /path/to/repo.git/hooks/pre-receive'
+#
+# Requirements on the server: python3 (stdlib only, no deps).
+# Env override: MAX_CHARS (default 20000), AUDIT_SUBDIR (default "skills")
+
+set -euo pipefail
+zero="0000000000000000000000000000000000000000"
+audited=0
+
+while read -r old new ref; do
+  [[ "$new" == "$zero" ]] && continue                     # branch deletion
+  [[ "$ref" != refs/heads/* ]] && continue                # branches only
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
+  subdir="${AUDIT_SUBDIR:-skills}"
+
+  # Extract the skills subtree of the pushed commit into $tmp
+  if ! git -C "${GIT_DIR:-.}" archive "$new" "$subdir" 2>/dev/null | tar -x -C "$tmp"; then
+    echo "[pre-receive] no '$subdir/' subtree in $ref — nothing to audit"
+    continue
+  fi
+
+  here="$(cd "$(dirname "$0")" && pwd)"
+  # Locate the audit engine: either next to this hook or in a sibling
+  # scripts/ checkout. Missing tooling fails OPEN (bootstrap-friendly).
+  gate=""
+  for cand in "$here/audit_gate.py" "$here/../../scripts/audit_gate.py"; do
+    [[ -f "$cand" ]] && gate="$cand" && break
+  done
+  if [[ -z "$gate" ]]; then
+    echo "[pre-receive] audit_gate.py not installed next to hook — skipping audit"
+    continue
+  fi
+
+  # Pick a python that actually runs (Windows Store stubs pass `command -v`
+  # but exit non-zero when executed).
+  py=""
+  for cand in python python3; do
+    if command -v "$cand" >/dev/null 2>&1 && "$cand" -c "import sys" 2>/dev/null; then
+      py="$cand"; break
+    fi
+  done
+  if [[ -z "$py" ]]; then
+    echo "[pre-receive] no usable python found — skipping audit for $ref"
+    continue
+  fi
+  # Exit 2 = engine missing → skip (bootstrap-friendly); else non-zero = block.
+  "$py" "$gate" "$tmp/$subdir" ${MAX_CHARS:+--max-chars "$MAX_CHARS"}
+  rc=$?
+  if [[ $rc -eq 2 ]]; then
+    echo "[pre-receive] audit engine not installed — skipping audit for $ref"
+    continue
+  fi
+  if [[ $rc -ne 0 ]]; then
+    echo "[pre-receive] $ref blocked: skills audit FAILED (fix and push again)"
+    exit 1
+  fi
+  audited=$((audited+1))
+done
+
+echo "[pre-receive] audit passed ($audited ref(s) checked)"
+exit 0
