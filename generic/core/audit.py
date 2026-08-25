@@ -80,7 +80,7 @@ def _check_broken_links(body: str, sdir: Path) -> list:
     issues = []
     cleaned = FENCE_RE.sub("", body)
     for m in LINK_RE.finditer(cleaned):
-        rel = m.group(1) or m.group(2)
+        rel = (m.group(1) or m.group(2) or "").split("#", 1)[0]  # drop anchors
         if not rel:
             continue
         # Skip documentation placeholders like references/xxx.md, <name>.md, *.md

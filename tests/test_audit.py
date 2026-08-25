@@ -157,6 +157,19 @@ def test_placeholder_links_not_flagged(tmp_path):
             if i["rule"] == "broken-link"] == []
 
 
+def test_anchor_links_resolve_to_file(tmp_path):
+    """file.md#anchor 形式的引用：锚段去掉后文件存在即不算断链。"""
+    body = ("---\nname: router\ndescription: route.\n---\n\n"
+            "See 'references/guide.md#workflow' and "
+            "[Verification](references/checks.md#verification).\n")
+    _make_skill(tmp_path, "demo", "router", body,
+                {"references/guide.md": "# g\n",
+                 "references/checks.md": "# c\n"})
+    report = audit_skills_dir(tmp_path)
+    assert [i for s in report["skills"] for i in s["issues"]
+            if i["rule"] == "broken-link"] == []
+
+
 def test_orphan_skill_md_without_frontmatter_dir(tmp_path):
     """分类根下直接躺一个散文件不算技能；空目录不算技能，均不崩。"""
     (tmp_path / "weird").mkdir()
