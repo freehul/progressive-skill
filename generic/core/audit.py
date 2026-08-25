@@ -143,7 +143,8 @@ def parse_known_names(path) -> set | None:
                 while stack:
                     node = stack.pop()
                     if isinstance(node, str):
-                        names.add(node)
+                        if re.fullmatch(r"[a-z0-9][a-z0-9_\-]{1,60}", node):
+                            names.add(node)  # plausible skill name only
                     elif isinstance(node, dict):
                         stack.extend(node.values())
                     elif isinstance(node, list):

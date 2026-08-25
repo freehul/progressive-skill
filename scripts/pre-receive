@@ -19,15 +19,25 @@ while read -r old new ref; do
   [[ "$ref" != refs/heads/* ]] && continue                # branches only
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
-  subdir="${AUDIT_SUBDIR:-skills}"
 
-  # Extract the skills subtree of the pushed commit into $tmp
-  if ! git -C "${GIT_DIR:-.}" archive "$new" "$subdir" 2>/dev/null | tar -x -C "$tmp"; then
-    echo "[pre-receive] no '$subdir/' subtree in $ref — nothing to audit"
+  # Categorized layout (<root>/skills/<cat>/<skill>/) audits the subtree;
+  # flat layout (hub-style, <skill>/ at repo root) audits the whole tree.
+  subdir="${AUDIT_SUBDIR:-skills}"
+  target=""
+  if git -C "${GIT_DIR:-.}" archive "$new" "$subdir" 2>/dev/null | tar -x -C "$tmp" 2>/dev/null; then
+    target="$tmp/$subdir"
+  elif git -C "${GIT_DIR:-.}" archive "$new" | tar -x -C "$tmp" 2>/dev/null; then
+    target="$tmp"
+  fi
+  if [[ -z "$target" ]]; then
+    echo "[pre-receive] cannot extract pushed tree of $ref"
     continue
   fi
 
+  # Optional per-deployment overrides (e.g. AUDIT_WARN_ONLY=1 during rollout).
   here="$(cd "$(dirname "$0")" && pwd)"
+  [[ -f "$here/audit.env" ]] && . "$here/audit.env"
+
   # Locate the audit engine: either next to this hook or in a sibling
   # scripts/ checkout. Missing tooling fails OPEN (bootstrap-friendly).
   gate=""
@@ -42,7 +52,7 @@ while read -r old new ref; do
   # Pick a python that actually runs (Windows Store stubs pass `command -v`
   # but exit non-zero when executed).
   py=""
-  for cand in python python3; do
+  for cand in python3 python; do
     if command -v "$cand" >/dev/null 2>&1 && "$cand" -c "import sys" 2>/dev/null; then
       py="$cand"; break
     fi
@@ -51,14 +61,28 @@ while read -r old new ref; do
     echo "[pre-receive] no usable python found — skipping audit for $ref"
     continue
   fi
+
+  # Registry file travels inside the pushed tree when present (e.g. MANIFEST.yaml).
+  known_args=""
+  for reg in "$target/MANIFEST.yaml" "$target/skills/MANIFEST.yaml"; do
+    [[ -f "$reg" ]] && known_args="--known-names $reg" && break
+  done
+
   # Exit 2 = engine missing → skip (bootstrap-friendly); else non-zero = block.
-  "$py" "$gate" "$tmp/$subdir" ${MAX_CHARS:+--max-chars "$MAX_CHARS"}
-  rc=$?
+  # (`|| rc=$?` guards against set -e killing us before we can read the code.)
+  # shellcheck disable=SC2086
+  rc=0
+  "$py" "$gate" "$target" ${MAX_CHARS:+--max-chars "$MAX_CHARS"} $known_args || rc=$?
   if [[ $rc -eq 2 ]]; then
     echo "[pre-receive] audit engine not installed — skipping audit for $ref"
     continue
   fi
   if [[ $rc -ne 0 ]]; then
+    if [[ "${AUDIT_WARN_ONLY:-0}" == "1" ]]; then
+      echo "[pre-receive] $ref: audit FAILED but AUDIT_WARN_ONLY=1 — allowing (observe mode)"
+      audited=$((audited+1))
+      continue
+    fi
     echo "[pre-receive] $ref blocked: skills audit FAILED (fix and push again)"
     exit 1
   fi
