@@ -1,0 +1,4 @@
+# Shell hooks must stay LF everywhere — CRLF breaks shebangs on Linux/macOS
+scripts/pre-push text eol=lf
+scripts/pre-receive text eol=lf
+*.sh text eol=lf

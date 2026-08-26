@@ -38,9 +38,9 @@ if [[ -z "$py" ]]; then
 fi
 
 # Exit 2 = engine missing → skip (bootstrap-friendly); other non-zero = block.
+rc=0
 "$py" "$here/audit_gate.py" "$skills_dir" \
   ${MAX_CHARS:+--max-chars "$MAX_CHARS"} \
-  ${KNOWN_NAMES:+--known-names "$KNOWN_NAMES"}
-rc=$?
+  ${KNOWN_NAMES:+--known-names "$KNOWN_NAMES"} || rc=$?
 [[ $rc -eq 2 ]] && { echo "[pre-push] audit engine not installed — skipping"; exit 0; }
 exit $rc
