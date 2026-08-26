@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# pre-receive hook (SERVER SIDE, for the bare canonical repo, e.g. NAS
-# skills-hub.git) — audits the pushed tree; bypassing client hooks with
+# pre-receive hook (SERVER SIDE, for a bare canonical repo) — audits the
+# pushed tree; bypassing client hooks with
 # --no-verify does NOT get past this one.
 #
 # Install on your server:

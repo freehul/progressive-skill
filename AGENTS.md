@@ -35,8 +35,8 @@ python generic/cli.py audit <your-skills-dir> --max-chars 20000
 cp scripts/pre-push .git/hooks/pre-push
 
 # 服务端预接收钩子（部署到裸仓 hooks/，--no-verify 无法绕过；
-# 与 audit_gate.py + audit.py 同目录放置即可运行）
-scp scripts/pre-receive scripts/audit_gate.py scripts/audit.py \
+# 与 audit_gate.py + core/audit.py 同目录放置即可运行）
+scp scripts/pre-receive scripts/audit_gate.py generic/core/audit.py \
     user@your-server:/path/to/repo.git/hooks/
 ```
 

@@ -77,7 +77,7 @@ python generic/cli.py demote --snapshot snap.json --usage usage.json --toolsets 
 python generic/cli.py budget --input index.txt --usage usage.json --relevant devops,hermes
 ```
 
-Prerequisites: Python 3.10+, your own skills snapshot JSON (one entry per skill: `{"category": "...", "frontmatter_name": "..."}`) and optional `usage.json`.
+Prerequisites: Python 3.9+, your own skills snapshot JSON (one entry per skill: `{"category": "...", "frontmatter_name": "..."}`) and optional `usage.json`.
 
 ## Configuration
 
@@ -106,7 +106,7 @@ Changes take effect next session.
 - **Agent-agnostic core** — decision logic extracted to `generic/core/` (pure Python, zero Hermes imports). Hermes plugin is now a thin adapter; other agents drive the same logic via `cli.py`.
 - **CLI** — `cli.py demote` / `cli.py budget` for universal agent usage
 - **Claude Code skill** — `skills/progressive-skill/SKILL.md` entry point
-- **Unit tests** — `tests/test_core.py` (11 cases, pytest)
+- **Unit tests** — `tests/test_core.py` + `tests/test_audit.py` (27 cases, pytest)
 
 ## Design principles
 

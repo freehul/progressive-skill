@@ -77,7 +77,7 @@ python generic/cli.py demote --snapshot snap.json --usage usage.json --toolsets 
 python generic/cli.py budget --input index.txt --usage usage.json --relevant devops,hermes
 ```
 
-前置：Python 3.10+、自己的技能快照 JSON（每条技能含 `{"category": "...", "frontmatter_name": "..."}`）、可选 `usage.json`。
+前置：Python 3.9+、自己的技能快照 JSON（每条技能含 `{"category": "...", "frontmatter_name": "..."}`）、可选 `usage.json`。
 
 ## 配置
 
