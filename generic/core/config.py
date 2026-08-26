@@ -38,9 +38,16 @@ def init(yaml_path: Optional[Path] = None) -> Dict[str, Any]:
         cfg = dict(DEFAULT_CONFIG)
         if yaml_path is not None:
             try:
-                if yaml_path.exists():
-                    import yaml
-
+                import yaml  # optional dependency
+            except ImportError:
+                logger.warning(
+                    "progressive-skill: PyYAML not installed — "
+                    "%s ignored, using defaults",
+                    yaml_path,
+                )
+                yaml = None
+            try:
+                if yaml_path.exists() and yaml is not None:
                     raw = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
                     if isinstance(raw, dict) and isinstance(raw.get("config"), dict):
                         cfg.update(

@@ -17,6 +17,16 @@ import importlib.util
 import sys
 from pathlib import Path
 
+# Force UTF-8 stdout/stderr so the Chinese audit messages survive legacy
+# console code pages (e.g. cp1252) instead of crashing mid-report.
+for _stream in (sys.stdout, sys.stderr):
+    _reconf = getattr(_stream, "reconfigure", None)
+    if _reconf is not None:
+        try:
+            _reconf(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
 _HERE = Path(__file__).resolve().parent
 _CANDIDATES = (
     _HERE.parent / "generic" / "core" / "audit.py",   # repo checkout

@@ -18,6 +18,16 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+
+# Force UTF-8 stdout/stderr so Chinese audit messages survive legacy code
+# pages (e.g. cp1252) instead of crashing mid-report.
+for _stream in (sys.stdout, sys.stderr):
+    _reconf = getattr(_stream, "reconfigure", None)
+    if _reconf is not None:
+        try:
+            _reconf(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
 from pathlib import Path
 
 from core import ProgressiveCore, UsageTracker
