@@ -3,6 +3,8 @@
 覆盖：R1 巨无霸单体、R2 frontmatter 合法性、R3 资源引用断链、
 R4 目录布局、登记一致性（可选注入）。fixture 全部用 tmp_path 构造。
 """
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 
