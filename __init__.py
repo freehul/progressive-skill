@@ -109,7 +109,19 @@ def _patch_prompt_builder() -> bool:
                 )
                 return False
 
-        original = pb.build_skills_system_prompt
+        original = getattr(pb, "build_skills_system_prompt", None)
+        if original is None:
+            # A partially initialized module (circular import while the
+            # plugin is being loaded) exposes no attributes yet.  Attribute
+            # access must not raise out of register(), or the plugin fails
+            # to load entirely -- and the on_session_start retry, the very
+            # safety net for this case, never gets registered.
+            logger.warning(
+                "progressive-skill: agent.prompt_builder is partially "
+                "initialized (build_skills_system_prompt not defined yet); "
+                "will retry on session start"
+            )
+            return False
 
         def wrapped_build_skills_system_prompt(
             available_tools=None,
