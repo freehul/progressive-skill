@@ -109,7 +109,17 @@ def _patch_prompt_builder() -> bool:
                 )
                 return False
 
-        original = pb.build_skills_system_prompt
+        try:
+            original = pb.build_skills_system_prompt
+        except AttributeError:
+            # Partially initialized module (e.g. circular import): present
+            # in sys.modules but the target attribute is not yet bound.
+            # Defer — register() failure is retried on session start.
+            logger.warning(
+                "progressive-skill: agent.prompt_builder partially "
+                "initialized (circular import?); will retry later"
+            )
+            return False
 
         def wrapped_build_skills_system_prompt(
             available_tools=None,
