@@ -1,5 +1,8 @@
 # Progressive Skill（渐进式技能）
 
+> **维护状态：不再更新（2026-10）。**
+> 本项目的思路（渐进式披露 + 预算控制 + 使用频次学习）已集成进 **[SGME](https://github.com/freehul/sgme) 的技能管理模块**。仓库保留作为开源作品与设计参考——代码仍可用，关键修复视情况处理，但不再计划新功能。
+
 **智能压缩技能索引**，按工具集与使用频次渐进式披露，硬预算控制 token 开销——**适用于任意 Agent**。
 
 解决 [NousResearch/hermes-agent#22620](https://github.com/NousResearch/hermes-agent/issues/22620)（*"技能列表膨胀导致上下文窗口暴涨"*）：

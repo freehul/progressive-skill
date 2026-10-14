@@ -1,5 +1,8 @@
 # Progressive Skill
 
+> **Maintenance status — no longer updated (2026-10).**
+> The approach here (progressive disclosure + budget control + usage-frequency learning) has been integrated into the **skills module of [SGME](https://github.com/freehul/sgme)**. This repository is kept as an open-source work and design reference: the code still works, critical fixes may land case-by-case, but no new features are planned.
+
 **Smart skill index compaction** with progressive disclosure, budget control, and usage-frequency learning — **works with any agent**.
 
 Tackles [NousResearch/hermes-agent#22620](https://github.com/NousResearch/hermes-agent/issues/22620): *"Skill list bloat causes massive context window inflation."*
